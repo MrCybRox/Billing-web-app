@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="ur">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vendor Admin — Client Access Panel</title>
+<link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#FFFFFF; --panel:#FFF4E4; --ink:#2b2420; --ink-soft:#8a7f74; --line:#f0ddc3;
+  --brick:#EF5A2A; --herb:#1E9E5A; --gold:#F5A623; --danger:#E0483B;
+  --grad:linear-gradient(120deg,#FFE29A 0%,#FFB199 45%,#FF8CAB 100%);
+}
+*{box-sizing:border-box;}
+body{margin:0; font-family:'Inter',sans-serif; background:var(--paper); color:var(--ink);}
+.topbar{background:var(--grad); padding:18px 24px; display:flex; justify-content:space-between; align-items:center;}
+.topbar h1{font-family:'Zilla Slab',serif; font-size:20px; margin:0; color:#3a2416;}
+.topbar button{border:none; background:rgba(255,255,255,.7); padding:8px 14px; border-radius:20px; font-weight:600; cursor:pointer;}
+.wrap{max-width:920px; margin:0 auto; padding:24px;}
+
+/* login */
+.login-wrap{min-height:80vh; display:flex; align-items:center; justify-content:center;}
+.login-box{background:var(--panel); border-radius:16px; padding:32px; width:100%; max-width:340px; text-align:center;}
+.login-box h2{font-family:'Zilla Slab',serif; margin:0 0 4px;}
+.login-box p{color:var(--ink-soft); font-size:13px; margin:0 0 18px;}
+.login-box input{width:100%; padding:11px 14px; border:1px solid var(--line); border-radius:8px; font-size:15px; margin-bottom:10px;}
+.login-box button{width:100%; padding:11px; border:none; border-radius:8px; background:var(--brick); color:#fff; font-weight:700; font-size:14px; cursor:pointer;}
+.err{color:var(--danger); font-size:12.5px; min-height:16px; margin:4px 0;}
+
+/* dashboard */
+.toolbar{display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; gap:10px; flex-wrap:wrap;}
+.toolbar h2{font-family:'Zilla Slab',serif; margin:0; font-size:19px;}
+.btn{border:none; padding:10px 16px; border-radius:20px; font-weight:700; font-size:13px; cursor:pointer;}
+.btn-add{background:linear-gradient(120deg,var(--herb),#25b96e); color:#fff;}
+.btn-danger{background:transparent; border:1px solid var(--line); color:var(--danger);}
+.btn-ghost{background:transparent; border:1px solid var(--line); color:var(--ink);}
+.btn-save{background:var(--brick); color:#fff;}
+
+table{width:100%; border-collapse:collapse; font-size:13.5px;}
+th{text-align:left; color:var(--ink-soft); font-size:11.5px; text-transform:uppercase; letter-spacing:.03em; padding:8px 10px; border-bottom:1px solid var(--line);}
+td{padding:10px; border-bottom:1px solid var(--line); vertical-align:middle;}
+.status-pill{padding:3px 10px; border-radius:12px; font-size:11.5px; font-weight:700;}
+.status-on{background:#e4f7ec; color:var(--herb);}
+.status-off{background:#fdeceb; color:var(--danger);}
+.status-expired{background:#fff3d9; color:#a3690f;}
+.row-actions{display:flex; gap:6px; flex-wrap:wrap;}
+.row-actions button{padding:6px 10px; font-size:12px; border-radius:14px;}
+.code-mono{font-family:'IBM Plex Mono',monospace; font-size:12.5px;}
+.empty{text-align:center; color:var(--ink-soft); padding:40px 0;}
+
+.overlay{position:fixed; inset:0; background:rgba(20,18,15,.5); display:none; align-items:center; justify-content:center; z-index:50; padding:16px;}
+.overlay.open{display:flex;}
+.modal{background:var(--paper); width:100%; max-width:420px; border-radius:16px; padding:22px;}
+.modal h3{font-family:'Zilla Slab',serif; margin:0 0 14px;}
+.field{margin-bottom:12px;}
+.field label{display:block; font-size:12px; font-weight:600; color:var(--ink-soft); margin-bottom:5px;}
+.field input{width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:8px; font-size:14px;}
+.field-check{display:flex; align-items:center; gap:8px; margin-bottom:12px;}
+.modal-actions{display:flex; gap:10px; margin-top:16px;}
+.modal-actions button{flex:1;}
+</style>
+</head>
+<body>
+
+<div id="loginScreen" class="login-wrap">
+  <div class="login-box">
+    <h2>Vendor Admin</h2>
+    <p>Apne clients ka access yahan se manage karein.</p>
+    <input id="loginPassword" type="password" placeholder="Admin password">
+    <div class="err" id="loginErr"></div>
+    <button onclick="doLogin()">Login</button>
+  </div>
+</div>
+
+<div id="dashboard" style="display:none;">
+  <div class="topbar">
+    <h1>🍽️ Client Access Panel</h1>
+    <div style="display:flex; gap:8px;">
+      <button onclick="openPasswordModal()">Change password</button>
+      <button onclick="doLogout()">Logout</button>
+    </div>
+  </div>
+  <div class="wrap">
+    <div class="toolbar">
+      <h2 id="countLabel">Clients</h2>
+      <button class="btn btn-add" onclick="openClientModal(null)">+ Add client</button>
+    </div>
+    <table>
+      <thead><tr><th>Shop</th><th>Access code</th><th>Expiry</th><th>Status</th><th>Last check-in</th><th>Actions</th></tr></thead>
+      <tbody id="clientRows"></tbody>
+    </table>
+    <div class="empty" id="emptyMsg" style="display:none;">Abhi tak koi client add nahi kiya.</div>
+  </div>
+</div>
+
+<!-- Client add/edit modal -->
+<div class="overlay" id="clientOverlay">
+  <div class="modal">
+    <h3 id="clientModalTitle">Add client</h3>
+    <div class="field"><label>Shop / client name</label><input id="cShopName" placeholder="e.g. Al-Karam Fast Food"></div>
+    <div class="field"><label>Access code</label><input id="cCode" placeholder="e.g. NOV-2026-KARAM"></div>
+    <div class="field"><label>Valid until</label><input id="cExpiry" type="date"></div>
+    <div class="field"><label>Notes (optional)</label><input id="cNotes" placeholder="phone number, area, etc"></div>
+    <div class="field-check"><input type="checkbox" id="cEnabled" checked><label for="cEnabled" style="margin:0;">Enabled (software chalu rahe)</label></div>
+    <div class="err" id="clientErr"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeClientModal()">Cancel</button>
+      <button class="btn btn-save" onclick="saveClient()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Change password modal -->
+<div class="overlay" id="passwordOverlay">
+  <div class="modal">
+    <h3>Change admin password</h3>
+    <div class="field"><label>New password</label><input id="newPassInput" type="password" placeholder="Kam az kam 4 characters"></div>
+    <div class="err" id="passErr"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closePasswordModal()">Cancel</button>
+      <button class="btn btn-save" onclick="savePassword()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+var TOKEN = localStorage.getItem("adminToken") || null;
+var clients = [];
+var editingId = null;
+
+function api(path, opts){
+  opts = opts || {};
+  opts.headers = Object.assign({"Content-Type":"application/json"}, opts.headers || {});
+  if(TOKEN) opts.headers["x-admin-token"] = TOKEN;
+  return fetch(path, opts).then(function(r){
+    return r.json().then(function(data){
+      if(!r.ok) throw new Error(data.error || "Request failed");
+      return data;
+    });
+  });
+}
+
+function doLogin(){
+  var pw = document.getElementById("loginPassword").value;
+  document.getElementById("loginErr").textContent = "";
+  api("/api/admin/login", {method:"POST", body:JSON.stringify({password:pw})})
+    .then(function(data){
+      TOKEN = data.token;
+      localStorage.setItem("adminToken", TOKEN);
+      showDashboard();
+    })
+    .catch(function(e){ document.getElementById("loginErr").textContent = e.message; });
+}
+document.getElementById("loginPassword").addEventListener("keydown", function(e){ if(e.key === "Enter") doLogin(); });
+
+function doLogout(){
+  api("/api/admin/logout", {method:"POST"}).catch(function(){});
+  TOKEN = null;
+  localStorage.removeItem("adminToken");
+  document.getElementById("dashboard").style.display = "none";
+  document.getElementById("loginScreen").style.display = "flex";
+}
+
+function showDashboard(){
+  document.getElementById("loginScreen").style.display = "none";
+  document.getElementById("dashboard").style.display = "block";
+  loadClients();
+}
+
+function loadClients(){
+  api("/api/admin/clients").then(function(data){
+    clients = data;
+    renderClients();
+  }).catch(function(e){
+    if(e.message === "Unauthorized"){ doLogout(); }
+  });
+}
+
+function statusInfo(c){
+  var today = new Date().toISOString().slice(0,10);
+  if(!c.enabled) return {label:"Band (OFF)", cls:"status-off"};
+  if(today > c.expiry) return {label:"Expired", cls:"status-expired"};
+  return {label:"Active", cls:"status-on"};
+}
+
+function renderClients(){
+  var tbody = document.getElementById("clientRows");
+  tbody.innerHTML = "";
+  document.getElementById("countLabel").textContent = "Clients (" + clients.length + ")";
+  document.getElementById("emptyMsg").style.display = clients.length ? "none" : "block";
+  clients.forEach(function(c){
+    var st = statusInfo(c);
+    var tr = document.createElement("tr");
+    var lastSeen = c.lastCheckIn ? new Date(c.lastCheckIn).toLocaleString() : "Kabhi nahi";
+    tr.innerHTML =
+      "<td><strong>"+esc(c.shopName)+"</strong>"+(c.notes ? '<div style="color:var(--ink-soft);font-size:11.5px;">'+esc(c.notes)+'</div>' : '')+"</td>"+
+      "<td class='code-mono'>"+esc(c.code)+"</td>"+
+      "<td>"+esc(c.expiry)+"</td>"+
+      "<td><span class='status-pill "+st.cls+"'>"+st.label+"</span></td>"+
+      "<td style='font-size:11.5px;color:var(--ink-soft);'>"+lastSeen+"</td>"+
+      "<td class='row-actions'>"+
+        "<button class='btn-ghost' onclick=\"openClientModal('"+c.id+"')\">Edit</button>"+
+        "<button class='"+(c.enabled ? "btn-danger" : "btn-add")+"' onclick=\"toggleEnabled('"+c.id+"')\">"+(c.enabled ? "Turn OFF" : "Turn ON")+"</button>"+
+        "<button class='btn-danger' onclick=\"deleteClient('"+c.id+"')\">Delete</button>"+
+      "</td>";
+    tbody.appendChild(tr);
+  });
+}
+
+function esc(s){ return String(s).replace(/[&<>"']/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
+
+function toggleEnabled(id){
+  var c = clients.find(function(x){ return x.id === id; });
+  api("/api/admin/clients/"+id, {method:"PUT", body:JSON.stringify({enabled: !c.enabled})})
+    .then(loadClients);
+}
+function deleteClient(id){
+  if(!confirm("Ye client delete karna hai?")) return;
+  api("/api/admin/clients/"+id, {method:"DELETE"}).then(loadClients);
+}
+
+function openClientModal(id){
+  editingId = id;
+  document.getElementById("clientErr").textContent = "";
+  if(id){
+    var c = clients.find(function(x){ return x.id === id; });
+    document.getElementById("clientModalTitle").textContent = "Edit client";
+    document.getElementById("cShopName").value = c.shopName;
+    document.getElementById("cCode").value = c.code;
+    document.getElementById("cExpiry").value = c.expiry;
+    document.getElementById("cNotes").value = c.notes || "";
+    document.getElementById("cEnabled").checked = c.enabled;
+  } else {
+    document.getElementById("clientModalTitle").textContent = "Add client";
+    document.getElementById("cShopName").value = "";
+    document.getElementById("cCode").value = "";
+    document.getElementById("cExpiry").value = "";
+    document.getElementById("cNotes").value = "";
+    document.getElementById("cEnabled").checked = true;
+  }
+  document.getElementById("clientOverlay").classList.add("open");
+}
+function closeClientModal(){ document.getElementById("clientOverlay").classList.remove("open"); }
+
+function saveClient(){
+  var body = {
+    shopName: document.getElementById("cShopName").value.trim(),
+    code: document.getElementById("cCode").value.trim(),
+    expiry: document.getElementById("cExpiry").value,
+    notes: document.getElementById("cNotes").value.trim(),
+    enabled: document.getElementById("cEnabled").checked
+  };
+  if(!body.shopName || !body.code || !body.expiry){
+    document.getElementById("clientErr").textContent = "Shop name, code aur expiry zaroori hain.";
+    return;
+  }
+  var req = editingId
+    ? api("/api/admin/clients/"+editingId, {method:"PUT", body:JSON.stringify(body)})
+    : api("/api/admin/clients", {method:"POST", body:JSON.stringify(body)});
+  req.then(function(){ closeClientModal(); loadClients(); })
+     .catch(function(e){ document.getElementById("clientErr").textContent = e.message; });
+}
+
+function openPasswordModal(){
+  document.getElementById("newPassInput").value = "";
+  document.getElementById("passErr").textContent = "";
+  document.getElementById("passwordOverlay").classList.add("open");
+}
+function closePasswordModal(){ document.getElementById("passwordOverlay").classList.remove("open"); }
+function savePassword(){
+  var np = document.getElementById("newPassInput").value;
+  api("/api/admin/change-password", {method:"POST", body:JSON.stringify({newPassword:np})})
+    .then(function(){ closePasswordModal(); alert("Password change ho gaya."); })
+    .catch(function(e){ document.getElementById("passErr").textContent = e.message; });
+}
+
+if(TOKEN) showDashboard();
+</script>
+</body>
+</html>
